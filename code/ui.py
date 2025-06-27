@@ -1,7 +1,7 @@
 from settings import *
 
 class UI:
-    def __init__(self, monster_surfs, monster, player_monsters):
+    def __init__(self, monster_surfs, monster, player_monsters, get_input):
         self.display_surface = pygame.display.get_surface()
         self.font = pygame.font.Font(None, 30)
         self.left = WINDOW_WIDTH / 2 - 100
@@ -9,6 +9,7 @@ class UI:
         self.monster_surfs = monster_surfs
         self.current_monster = monster
         self.player_monsters = player_monsters
+        self.get_input = get_input
 
         # control
         self.general_options = ["attack", "heal", "switch", "escape"]
@@ -65,12 +66,24 @@ class UI:
             self.attack_index["row"] = (self.attack_index["row"] + int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])) % self.rows
             self.attack_index["col"] = (self.attack_index["col"] + int(keys[pygame.K_RIGHT]) - int(keys[pygame.K_LEFT])) % self.cols
             if keys[pygame.K_SPACE] or keys[pygame.K_RETURN]:
-                print(self.current_monster.abilities[self.attack_index["col"] + self.cols * self.attack_index["row"]])
+                attack = self.current_monster.abilities[self.attack_index["col"] + self.cols * self.attack_index["row"]]
+                self.get_input(self.state, attack)
+                self.state = "general"
+                self.general_index = {"col": 0, "row": 0}
 
         elif self.state == "switch":
             self.switch_index = (self.switch_index + int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])) % len(self.available_monsters)
             if keys[pygame.K_SPACE] or keys[pygame.K_RETURN]:
-                print(self.available_monsters[self.switch_index])
+                self.get_input(self.state, self.available_monsters[self.switch_index])
+                self.state = "general"
+                self.general_index = {"col": 0, "row": 0}
+
+        elif self.state == "heal":
+            self.get_input("heal")
+            self.state = "general"
+
+        elif self.state == "escape":
+            self.get_input("escape")
 
         if keys[pygame.K_ESCAPE]:
             self.state = "general"

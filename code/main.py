@@ -12,6 +12,7 @@ class Game:
         pygame.display.set_caption('Monster Battle')
         self.clock = pygame.time.Clock()
         self.running = True
+        self.player_active = True
 
         self.import_assets()
 
@@ -28,7 +29,13 @@ class Game:
         self.opponent = Opponent(self.all_sprites, self.front_surfs[random_monster], random_monster)
 
         # UI
-        self.ui = UI(self.simple_surfs, self.current_monster, self.player_monsters)
+        self.ui = UI(self.simple_surfs, self.current_monster, self.player_monsters, self.get_input)
+
+        # Timers
+        self.timers = {
+            "player turn end": Timer(1000, func = self.take_opponent_turn),
+            "opponent turn end": Timer(1000, func = self.take_player_turn)
+        }
 
     def run(self):
         while self.running:
@@ -38,8 +45,10 @@ class Game:
                     self.running = False
            
             # update
+            self.update_timers()
             self.all_sprites.update(dt)
-            self.ui.update()
+            if self.player_active:
+                self.ui.update()
 
             # draw  
             self.display_surface.blit(self.bg_surfs["bg"], (0,0))
@@ -60,6 +69,35 @@ class Game:
         for sprite in self.all_sprites:
             floor_rect = self.bg_surfs["floor"].get_frect(center = sprite.rect.midbottom + pygame.Vector2(0, -10))
             self.display_surface.blit(self.bg_surfs["floor"], floor_rect)
+
+    def take_opponent_turn(self):
+        random_attack = choice(self.opponent.abilities)
+        self.apply_attack(self.current_monster, random_attack)
+        self.timers["opponent turn end"].activate()
+
+    def take_player_turn(self):
+        self.player_active = True
+
+    def update_timers(self):
+        for timer in self.timers.values():
+            timer.update()
+
+    def get_input(self, state, data = None):
+        if state == "attack":
+            self.apply_attack(self.opponent, data)
+        elif state == "heal":
+            pass
+        elif state == "switch":
+            pass
+        elif state == "escape":
+            self.running = False
+
+        self.player_active = False
+        self.timers["player turn end"].activate()
+
+    def apply_attack(self, target, attack):
+        damage_multiplier = ELEMENT_DATA[ABILITIES_DATA[attack]["element"]][target.element]
+        target.health = max(0, target.health - ABILITIES_DATA[attack]["damage"] * damage_multiplier)
 
 if __name__ == '__main__':
     game = Game()

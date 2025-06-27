@@ -26,3 +26,7 @@ class Opponent(pygame.sprite.Sprite, Creature):
         self.rect = self.image.get_frect(midbottom = (WINDOW_WIDTH - 250,  300))
 
         self.get_data(name)
+
+
+    def __repr__(self):
+        return f"{self.name}: {self.health}/{self.max_health}"
