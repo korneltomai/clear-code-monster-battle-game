@@ -2,7 +2,8 @@ from settings import *
 from support import *
 from custom_timer import Timer
 from monster import Monster, Opponent
-from ui import UI
+from ui import PlayerUI, OpponentUI
+from attack import AttackAnimationSprite
 from random import choice
 
 class Game:
@@ -25,11 +26,12 @@ class Game:
         self.current_monster = self.player_monsters[0]
         self.all_sprites.add(self.current_monster)
 
-        random_monster = choice(list(MONSTER_DATA.keys()))
-        self.opponent = Opponent(self.all_sprites, self.front_surfs[random_monster], random_monster)
+        ranndom_monster = choice(list(MONSTER_DATA.keys()))
+        self.opponent = Opponent(self.all_sprites, self.front_surfs[ranndom_monster], ranndom_monster)
 
         # UI
-        self.ui = UI(self.simple_surfs, self.current_monster, self.player_monsters, self.get_input)
+        self.player_ui = PlayerUI(self.current_monster, self.simple_surfs, self.player_monsters, self.get_input)
+        self.opponent_ui = OpponentUI(self.opponent)
 
         # Timers
         self.timers = {
@@ -48,13 +50,14 @@ class Game:
             self.update_timers()
             self.all_sprites.update(dt)
             if self.player_active:
-                self.ui.update()
+                self.player_ui.update()
 
             # draw  
             self.display_surface.blit(self.bg_surfs["bg"], (0,0))
             self.draw_monster_floor()
             self.all_sprites.draw(self.display_surface)
-            self.ui.draw()
+            self.player_ui.draw()
+            self.opponent_ui.draw()
             pygame.display.update()
         
         pygame.quit()
@@ -64,6 +67,7 @@ class Game:
         self.back_surfs = folder_importer("images", "back")
         self.front_surfs = folder_importer("images", "front")
         self.simple_surfs = folder_importer("images", "simple")
+        self.attack_frames = tile_importer(4, "images", "attacks")
 
     def draw_monster_floor(self):
         for sprite in self.all_sprites:
@@ -86,7 +90,8 @@ class Game:
         if state == "attack":
             self.apply_attack(self.opponent, data)
         elif state == "heal":
-            pass
+            self.current_monster.health += 50
+            AttackAnimationSprite(self.all_sprites, self.current_monster, self.attack_frames["green"])
         elif state == "switch":
             pass
         elif state == "escape":
@@ -96,8 +101,10 @@ class Game:
         self.timers["player turn end"].activate()
 
     def apply_attack(self, target, attack):
-        damage_multiplier = ELEMENT_DATA[ABILITIES_DATA[attack]["element"]][target.element]
-        target.health = max(0, target.health - ABILITIES_DATA[attack]["damage"] * damage_multiplier)
+        attack_data = ABILITIES_DATA[attack]
+        damage_multiplier = ELEMENT_DATA[attack_data["element"]][target.element]
+        target.health -= attack_data["damage"] * damage_multiplier
+        AttackAnimationSprite(self.all_sprites, target, self.attack_frames[attack_data["animation"]])
 
 if __name__ == '__main__':
     game = Game()

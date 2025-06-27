@@ -1,13 +1,40 @@
 from settings import *
 
 class UI:
-    def __init__(self, monster_surfs, monster, player_monsters, get_input):
+    def __init__(self, pos, monster):
         self.display_surface = pygame.display.get_surface()
         self.font = pygame.font.Font(None, 30)
-        self.left = WINDOW_WIDTH / 2 - 100
-        self.top = WINDOW_HEIGHT / 2 + 50
-        self.monster_surfs = monster_surfs
+        self.left = pos[0]
+        self.top = pos[1]
         self.current_monster = monster
+
+    def draw(self):
+        self.draw_stats()
+
+    def draw_stats(self):
+        # background
+        menu_rect = pygame.FRect((self.left, self.top), (250, 80))
+        pygame.draw.rect(self.display_surface, COLORS["white"], menu_rect, 0, 4)
+        pygame.draw.rect(self.display_surface, COLORS["gray"], menu_rect, 4, 4)
+
+        name_surf = self.font.render(self.current_monster.name, True, COLORS["black"])
+        name_rect = name_surf.get_frect(topleft = menu_rect.topleft + pygame.Vector2(menu_rect.width * 0.05, 12))
+        self.display_surface.blit(name_surf, name_rect)
+
+        # health bar
+        health_rect = pygame.FRect(name_rect.left, name_rect.bottom + 10, menu_rect.width * 0.9, 20)
+        pygame.draw.rect(self.display_surface, COLORS["gray"], health_rect)
+        self.draw_bar(health_rect, self.current_monster.health, self.current_monster.max_health)
+
+    def draw_bar(self, rect, value, max_value):
+        ratio = rect.width / max_value
+        progress_rect = pygame.FRect(rect.topleft, (value * ratio, rect.height))
+        pygame.draw.rect(self.display_surface, COLORS["red"], progress_rect)
+
+class PlayerUI(UI):
+    def __init__(self, monster, monster_surfs, player_monsters, get_input):
+        super().__init__((WINDOW_WIDTH / 2 - 100, WINDOW_HEIGHT / 2 + 50), monster)
+        self.monster_surfs = monster_surfs
         self.player_monsters = player_monsters
         self.get_input = get_input
 
@@ -34,6 +61,9 @@ class UI:
                 self.handle_selection(self.attack_index, self.current_monster.abilities)
             case "switch":
                 self.switch()
+
+        if self.state != "switch":
+            self.draw_stats()
 
     def handle_selection(self, index, options):
         # background
@@ -113,3 +143,7 @@ class UI:
             if menu_rect.collidepoint(text_rect.center):
                 self.display_surface.blit(text_surf, text_rect)
                 self.display_surface.blit(monster_surf, monster_rect)
+
+class OpponentUI(UI):
+    def __init__(self, monster):
+        super().__init__((WINDOW_WIDTH / 2 + 40, WINDOW_HEIGHT / 2 - 90), monster)
