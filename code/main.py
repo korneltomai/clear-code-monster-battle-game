@@ -2,6 +2,7 @@ from settings import *
 from support import *
 from custom_timer import Timer
 from monster import Monster, Opponent
+from ui import UI
 from random import choice
 
 class Game:
@@ -26,6 +27,9 @@ class Game:
         random_monster = choice(list(MONSTER_DATA.keys()))
         self.opponent = Opponent(self.all_sprites, self.front_surfs[random_monster], random_monster)
 
+        # UI
+        self.ui = UI(self.monster)
+
     def run(self):
         while self.running:
             dt = self.clock.tick() / 1000
@@ -35,11 +39,13 @@ class Game:
            
             # update
             self.all_sprites.update(dt)
+            self.ui.update()
 
             # draw  
             self.display_surface.blit(self.bg_surfs["bg"], (0,0))
             self.draw_monster_floor()
             self.all_sprites.draw(self.display_surface)
+            self.ui.draw()
             pygame.display.update()
         
         pygame.quit()
