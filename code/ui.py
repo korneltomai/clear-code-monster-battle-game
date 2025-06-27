@@ -52,6 +52,7 @@ class PlayerUI(UI):
 
     def update(self):
         self.handle_input()
+        self.available_monsters = [monster for monster in self.player_monsters if monster != self.current_monster and monster.health > 0]
 
     def draw(self):
         match self.state:
@@ -102,11 +103,12 @@ class PlayerUI(UI):
                 self.general_index = {"col": 0, "row": 0}
 
         elif self.state == "switch":
-            self.switch_index = (self.switch_index + int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])) % len(self.available_monsters)
-            if keys[pygame.K_SPACE] or keys[pygame.K_RETURN]:
-                self.get_input(self.state, self.available_monsters[self.switch_index])
-                self.state = "general"
-                self.general_index = {"col": 0, "row": 0}
+            if self.available_monsters:
+                self.switch_index = (self.switch_index + int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])) % len(self.available_monsters)
+                if keys[pygame.K_SPACE] or keys[pygame.K_RETURN]:
+                    self.get_input(self.state, self.available_monsters[self.switch_index])
+                    self.state = "general"
+                    self.general_index = {"col": 0, "row": 0}
 
         elif self.state == "heal":
             self.get_input("heal")
@@ -146,4 +148,4 @@ class PlayerUI(UI):
 
 class OpponentUI(UI):
     def __init__(self, monster):
-        super().__init__((WINDOW_WIDTH / 2 + 40, WINDOW_HEIGHT / 2 - 90), monster)
+        super().__init__((WINDOW_WIDTH / 2 - 50, WINDOW_HEIGHT / 2 - 200), monster)
