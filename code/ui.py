@@ -17,9 +17,23 @@ class UI:
         pygame.draw.rect(self.display_surface, COLORS["white"], menu_rect, 0, 4)
         pygame.draw.rect(self.display_surface, COLORS["gray"], menu_rect, 4, 4)
 
+        # text
         name_surf = self.font.render(self.current_monster.name, True, COLORS["black"])
         name_rect = name_surf.get_frect(topleft = menu_rect.topleft + pygame.Vector2(menu_rect.width * 0.05, 12))
         self.display_surface.blit(name_surf, name_rect)
+
+        for i in range(len(self.current_monster.statuses)):
+            status = self.current_monster.statuses[i]
+            status_color = COLORS["black"]
+            match status.name:
+                case "bleed":
+                    status_color = "red"
+                case "paralysis":
+                    status_color = "yellow"
+                case "drain":
+                    status_color = "green"
+            
+            pygame.draw.aacircle(self.display_surface, status_color, (name_rect.right + 20 + i * 30 , name_rect.centery), 12)
 
         # health bar
         health_rect = pygame.FRect(name_rect.left, name_rect.bottom + 10, menu_rect.width * 0.9, 20)
@@ -51,7 +65,11 @@ class PlayerUI(UI):
         self.available_monsters = [monster for monster in self.player_monsters if monster != self.current_monster and monster.health > 0]
 
     def update(self):
-        self.handle_input()
+        if self.current_monster.stunned:
+            self.get_input("stunned")
+        else:
+            self.handle_input()
+
         self.available_monsters = [monster for monster in self.player_monsters if monster != self.current_monster and monster.health > 0]
 
     def draw(self):
@@ -157,7 +175,7 @@ class ActionHistory():
         self.left = 25
         self.top = 25
         self._actions = []
-        self.maximum_length = 5
+        self.maximum_length = 10
 
     def draw(self):
         for i in range(len(self._actions)):

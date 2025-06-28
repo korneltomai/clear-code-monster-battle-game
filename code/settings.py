@@ -31,12 +31,12 @@ MONSTER_DATA = {
 }
 
 ABILITIES_DATA = {
-	'scratch': {'damage': 20,  'element': 'normal', 'animation': 'scratch'},
-	'spark':   {'damage': 35,  'element': 'fire',   'animation': 'fire'},
-	'nuke':    {'damage': 50,  'element': 'fire',   'animation': 'explosion'},
-	'splash':  {'damage': 30,  'element': 'water',  'animation': 'splash'},
-	'shards':  {'damage': 50,  'element': 'water',  'animation': 'ice'},
-    'spiral':  {'damage': 40,  'element': 'plant',  'animation': 'green'}
+	'scratch': {'damage': 15,  'element': 'normal', 'animation': 'scratch', 'status': 'bleed'},
+	'spark':   {'damage': 15,  'element': 'fire',   'animation': 'fire', 'status': 'paralysis'},
+	'nuke':    {'damage': 40,  'element': 'fire',   'animation': 'explosion'},
+	'splash':  {'damage': 25,  'element': 'water',  'animation': 'splash'},
+	'shards':  {'damage': 25,  'element': 'water',  'animation': 'ice'},
+    'spiral':  {'damage': 10,  'element': 'plant',  'animation': 'green', 'status': 'drain'}
 }
 
 ELEMENT_DATA = {

@@ -4,6 +4,7 @@ from custom_timer import Timer
 from monster import Creature, Monster, Opponent
 from ui import PlayerUI, OpponentUI, ActionHistory
 from attack import AttackAnimationSprite
+from statuses import *
 from random import choice
 
 class Game:
@@ -52,8 +53,10 @@ class Game:
             # update
             self.update_timers()
             self.all_sprites.update(dt)
+
             if self.player_active:
                 self.player_ui.update()
+                
 
             # draw  
             self.display_surface.blit(self.bg_surfs["bg"], (0,0))
@@ -81,6 +84,9 @@ class Game:
                 self.display_surface.blit(self.bg_surfs["floor"], floor_rect)
 
     def take_opponent_turn(self):
+        if self.opponent_monster.health > 0:
+            self.update_statuses(self.opponent_monster)
+
         if self.opponent_monster.health <= 0:
             old_monster = self.opponent_monster
             self.player_active = True
@@ -90,12 +96,17 @@ class Game:
             self.opponent_ui.current_monster = self.opponent_monster
             self.action_history.add_action(f"{old_monster.name} fainted! Wild {self.opponent_monster.name} appears!")
         else:
-            random_attack = choice(self.opponent_monster.abilities)
-            self.apply_attack(self.opponent_monster, self.player_monster, random_attack)
+            if not self.opponent_monster.stunned:
+                random_attack = choice(self.opponent_monster.abilities)
+                self.apply_attack(self.opponent_monster, self.player_monster, random_attack)
             self.timers["opponent turn end"].activate()
 
     def take_player_turn(self):
         self.player_active = True
+        
+        if self.player_monster.health > 0:
+            self.update_statuses(self.player_monster)
+
         if self.player_monster.health <= 0:
             old_monster = self.player_monster
             available_monsters = [monster for monster in self.player_monsters if monster.health > 0]
@@ -114,7 +125,7 @@ class Game:
                 self.action_history.add_action(f"{old_monster.name} fainted! You summon {self.player_monster.name}!")
             else:
                 self.running = False
-
+            
     def update_timers(self):
         for timer in self.timers.values():
             timer.update()
@@ -149,6 +160,32 @@ class Game:
         AttackAnimationSprite(self.all_sprites, target, self.attack_frames[attack_data["animation"]])
         self.audio[attack_data["animation"]].play()
         self.action_history.add_action(f"{user.name} uses {attack} on {self.opponent_monster.name}. {target.name} suffers {damage} damage!")
+
+        if "status" in attack_data:
+            status = attack_data["status"]
+            self.apply_status(user, target, status)
+            self.action_history.add_action(f"{target.name} suffers {status}!")
+
+    def apply_status(self, user, target, status):
+        match status:
+            case "bleed":
+                if not any(status.name == "bleed" for status in target.statuses):
+                    target.statuses.append(Bleed(target, self.action_history.add_action))
+            case "paralysis":
+                if not any(status.name == "paralysis" for status in target.statuses):
+                    target.statuses.append(Paralysis(target, self.action_history.add_action))
+            case "drain":
+                if not any(status.name == "drain" for status in target.statuses):
+                    target.statuses.append(Drain(user, target, self.action_history.add_action))
+
+    def update_statuses(self, monster):
+        for status in monster.statuses:
+            status.apply()
+            if status.remaining_duration == 0:
+                monster.statuses.remove(status)
+                self.action_history.add_action(f"{status.name.capitalize()} times out on {monster.name}!")
+                if status.name == "paralysis":
+                    monster.stunned = False
 
 if __name__ == '__main__':
     game = Game()

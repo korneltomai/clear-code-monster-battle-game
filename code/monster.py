@@ -7,6 +7,8 @@ class Creature():
         self.element = MONSTER_DATA[name]["element"]
         self._health = self.max_health = MONSTER_DATA[name]["health"]
         self.abilities = sample(list(ABILITIES_DATA.keys()), 4)
+        self.statuses = []
+        self.stunned = False
 
     @property
     def health(self):
@@ -15,6 +17,10 @@ class Creature():
     @health.setter
     def health(self, value):
         self._health = min(self.max_health, max(0, value))
+
+    def update_statuses(self):
+        for status in self.statuses:
+            status.apply()
 
 class Monster(pygame.sprite.Sprite, Creature):
     def __init__(self, surf, name):
@@ -34,7 +40,6 @@ class Opponent(pygame.sprite.Sprite, Creature):
         self.rect = self.image.get_frect(midbottom = (WINDOW_WIDTH - 250,  300))
 
         self.get_data(name)
-
 
     def __repr__(self):
         return f"{self.name}: {self.health}/{self.max_health}"
