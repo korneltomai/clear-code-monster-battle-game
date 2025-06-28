@@ -2,7 +2,7 @@ from settings import *
 from support import *
 from custom_timer import Timer
 from monster import Creature, Monster, Opponent
-from ui import PlayerUI, OpponentUI
+from ui import PlayerUI, OpponentUI, ActionHistory
 from attack import AttackAnimationSprite
 from random import choice
 
@@ -23,15 +23,16 @@ class Game:
         # data
         player_monster_list = ["Sparchu", "Cleaf", "Jacana", "Gulfin", "Pouch", "Larvea"]
         self.player_monsters = [Monster(self.back_surfs[name], name) for name in player_monster_list]
-        self.current_monster = self.player_monsters[0]
-        self.all_sprites.add(self.current_monster)
+        self.player_monster = self.player_monsters[0]
+        self.all_sprites.add(self.player_monster)
 
         random_monster = choice(list(MONSTER_DATA.keys()))
-        self.opponent = Opponent(self.all_sprites, self.front_surfs[random_monster], random_monster)
+        self.opponent_monster = Opponent(self.all_sprites, self.front_surfs[random_monster], random_monster)
 
         # UI
-        self.player_ui = PlayerUI(self.current_monster, self.simple_surfs, self.player_monsters, self.get_input)
-        self.opponent_ui = OpponentUI(self.opponent)
+        self.player_ui = PlayerUI(self.player_monster, self.simple_surfs, self.player_monsters, self.get_input)
+        self.opponent_ui = OpponentUI(self.opponent_monster)
+        self.action_history = ActionHistory()
 
         # Timers
         self.timers = {
@@ -60,6 +61,7 @@ class Game:
             self.all_sprites.draw(self.display_surface)
             self.player_ui.draw()
             self.opponent_ui.draw()
+            self.action_history.draw()
             pygame.display.update()
         
         pygame.quit()
@@ -79,34 +81,37 @@ class Game:
                 self.display_surface.blit(self.bg_surfs["floor"], floor_rect)
 
     def take_opponent_turn(self):
-        if self.opponent.health <= 0:
+        if self.opponent_monster.health <= 0:
+            old_monster = self.opponent_monster
             self.player_active = True
-            self.opponent.kill()
+            self.opponent_monster.kill()
             random_monster = choice(list(MONSTER_DATA.keys()))
-            self.opponent = Opponent(self.all_sprites, self.front_surfs[random_monster], random_monster)
-            self.opponent_ui.current_monster = self.opponent
-
+            self.opponent_monster = Opponent(self.all_sprites, self.front_surfs[random_monster], random_monster)
+            self.opponent_ui.current_monster = self.opponent_monster
+            self.action_history.add_action(f"{old_monster.name} fainted! Wild {self.opponent_monster.name} appears!")
         else:
-            random_attack = choice(self.opponent.abilities)
-            self.apply_attack(self.current_monster, random_attack)
+            random_attack = choice(self.opponent_monster.abilities)
+            self.apply_attack(self.opponent_monster, self.player_monster, random_attack)
             self.timers["opponent turn end"].activate()
 
     def take_player_turn(self):
         self.player_active = True
-        if self.current_monster.health <= 0:
+        if self.player_monster.health <= 0:
+            old_monster = self.player_monster
             available_monsters = [monster for monster in self.player_monsters if monster.health > 0]
             if available_monsters:
-                self.current_monster.kill()
+                self.player_monster.kill()
 
                 # switch to the next available
                 for i in range(len(self.player_monsters)):
-                    next_monster = self.player_monsters[self.player_monsters.index(self.current_monster) + i]
+                    next_monster = self.player_monsters[self.player_monsters.index(self.player_monster) + i]
                     if next_monster in available_monsters:
-                        self.current_monster = next_monster
+                        self.player_monster = next_monster
                         break
 
-                self.all_sprites.add(self.current_monster)
-                self.player_ui.current_monster = self.current_monster
+                self.all_sprites.add(self.player_monster)
+                self.player_ui.current_monster = self.player_monster
+                self.action_history.add_action(f"{old_monster.name} fainted! You summon {self.player_monster.name}!")
             else:
                 self.running = False
 
@@ -116,28 +121,34 @@ class Game:
 
     def get_input(self, state, data = None):
         if state == "attack":
-            self.apply_attack(self.opponent, data)
+            self.apply_attack(self.player_monster, self.opponent_monster, data)
         elif state == "heal":
-            self.current_monster.health += 50
-            AttackAnimationSprite(self.all_sprites, self.current_monster, self.attack_frames["green"])
+            heal_amount = 50
+            self.player_monster.health += heal_amount
+            AttackAnimationSprite(self.all_sprites, self.player_monster, self.attack_frames["green"])
             self.audio["green"].play()
+            self.action_history.add_action(f"You use heal on {self.player_monster.name}! {self.player_monster.name} is healed for {heal_amount} HP!")
         elif state == "switch":
-            self.current_monster.kill()
-            self.current_monster = data
-            self.all_sprites.add(self.current_monster)
-            self.player_ui.current_monster = self.current_monster
+            old_monster = self.player_monster
+            self.player_monster.kill()
+            self.player_monster = data
+            self.all_sprites.add(self.player_monster)
+            self.player_ui.current_monster = self.player_monster
+            self.action_history.add_action(f"You send away {old_monster.name} and summon {self.player_monster.name}!")
         elif state == "escape":
             self.running = False
 
         self.player_active = False
         self.timers["player turn end"].activate()
 
-    def apply_attack(self, target, attack):
+    def apply_attack(self, user, target, attack):
         attack_data = ABILITIES_DATA[attack]
         damage_multiplier = ELEMENT_DATA[attack_data["element"]][target.element]
-        target.health -= attack_data["damage"] * damage_multiplier
+        damage = int(attack_data["damage"] * damage_multiplier)
+        target.health -= damage
         AttackAnimationSprite(self.all_sprites, target, self.attack_frames[attack_data["animation"]])
         self.audio[attack_data["animation"]].play()
+        self.action_history.add_action(f"{user.name} uses {attack} on {self.opponent_monster.name}. {target.name} suffers {damage} damage!")
 
 if __name__ == '__main__':
     game = Game()

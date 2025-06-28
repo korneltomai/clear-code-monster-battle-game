@@ -149,3 +149,23 @@ class PlayerUI(UI):
 class OpponentUI(UI):
     def __init__(self, monster):
         super().__init__((WINDOW_WIDTH / 2 - 50, WINDOW_HEIGHT / 2 - 200), monster)
+
+class ActionHistory():
+    def __init__(self):
+        self.display_surface = pygame.display.get_surface()
+        self.font = pygame.font.Font(None, 30)
+        self.left = 25
+        self.top = 25
+        self._actions = []
+        self.maximum_length = 5
+
+    def draw(self):
+        for i in range(len(self._actions)):
+            action_surf = self.font.render(self._actions[i], True, COLORS["black"])
+            action_rect = action_surf.get_frect(topleft = (self.left, self.top + i * action_surf.get_height()))
+            self.display_surface.blit(action_surf, action_rect)
+
+    def add_action(self, string):
+        self._actions.append(string)
+        if len(self._actions) > self.maximum_length:
+            self._actions.pop(0)
